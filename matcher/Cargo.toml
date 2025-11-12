@@ -1,0 +1,15 @@
+[package]
+name = "matcher"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+ndarray = "0.15"
+anyhow = "1"
+rayon = "1.10"
+indicatif = "0.17"
+ahash = "0.8"            # fast hash maps/sets
+smallvec = "1.13"        # for tiny fixed-capacity vectors
+itertools = "0.13"       # sort/merge helpers
+ndarray-npy = { version = "0.8", features = ["npz"] }  # read .npz input
+libc = "0.2"
