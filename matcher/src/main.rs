@@ -2,9 +2,7 @@ use anyhow::{Context, Result, bail};
 use std::env;
 use std::path::{Path, PathBuf};
 
-mod enumeration;
-mod matching;
-mod runtime;
+use matcher::{enumeration, matching, runtime};
 
 enum RunMode {
     Enumerate {

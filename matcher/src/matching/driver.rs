@@ -3,7 +3,48 @@ use std::collections::{HashMap, HashSet};
 use std::time::Instant;
 
 use super::solve::{build_rows_by_jbt, precompute_candidates_for_bucket1, subtotal_for_pair};
-use super::types::{Bucket, Snapshot, compat_key_sorted, key_sorted_vec};
+use super::types::{Bucket, PairTask, Snapshot, compat_key_sorted, key_sorted_vec};
+
+fn build_key_to_idx(buckets: &[Bucket]) -> HashMap<Vec<i32>, usize> {
+    let mut map = HashMap::with_capacity(buckets.len());
+    for (idx, b) in buckets.iter().enumerate() {
+        map.insert(key_sorted_vec(&b.key), idx);
+    }
+    map
+}
+
+pub fn build_pair_tasks(snap: &Snapshot) -> Vec<PairTask> {
+    let key_to_idx = build_key_to_idx(&snap.buckets);
+    let mut seen: HashSet<(usize, usize)> = HashSet::new();
+    let mut tasks: Vec<PairTask> = Vec::new();
+
+    for (i, bi) in snap.buckets.iter().enumerate() {
+        let compat_sorted = compat_key_sorted(&key_sorted_vec(&bi.key), snap.n_total);
+        if let Some(&j) = key_to_idx.get(&compat_sorted) {
+            let pair = if i <= j { (i, j) } else { (j, i) };
+            if seen.insert(pair) {
+                let (left, right) = if snap.buckets[pair.0].n_rows() <= snap.buckets[pair.1].n_rows()
+                {
+                    (pair.0, pair.1)
+                } else {
+                    (pair.1, pair.0)
+                };
+                let factor = if pair.0 != pair.1 { 2.0 } else { 1.0 };
+                tasks.push(PairTask { left, right, factor });
+            }
+        }
+    }
+
+    tasks.sort_by_key(|t| {
+        use std::cmp::Reverse;
+        let cost = (snap.buckets[t.left].n_rows() as u64)
+            * (snap.buckets[t.right].n_rows() as u64)
+            * (std::cmp::max(1, snap.buckets[t.left].key.len()) as u64);
+        Reverse(cost)
+    });
+
+    tasks
+}
 
 #[derive(Debug)]
 pub struct PairResult {
@@ -19,52 +60,17 @@ pub struct PairResult {
     pub factor: f64,
 }
 
-fn build_key_to_idx(buckets: &[Bucket]) -> HashMap<Vec<i32>, usize> {
-    let mut map = HashMap::with_capacity(buckets.len());
-    for (idx, b) in buckets.iter().enumerate() {
-        map.insert(key_sorted_vec(&b.key), idx);
-    }
-    map
-}
-
 pub fn run_all_pairs_parallel(snap: &Snapshot, verbose: bool) -> (Vec<PairResult>, f64) {
     let t0 = Instant::now();
-
-    // build unordered tasks
-    let key_to_idx = build_key_to_idx(&snap.buckets);
-    let mut seen: HashSet<(usize, usize)> = HashSet::new();
-    let mut tasks: Vec<(usize, usize, f64)> = Vec::new(); // (left,right,factor)
-
-    for (i, bi) in snap.buckets.iter().enumerate() {
-        let compat_sorted = compat_key_sorted(&key_sorted_vec(&bi.key), snap.n_total);
-        if let Some(&j) = key_to_idx.get(&compat_sorted) {
-            let pair = if i <= j { (i, j) } else { (j, i) };
-            if seen.insert(pair) {
-                let (left, right) =
-                    if snap.buckets[pair.0].n_rows() <= snap.buckets[pair.1].n_rows() {
-                        (pair.0, pair.1)
-                    } else {
-                        (pair.1, pair.0)
-                    };
-                let factor = if pair.0 != pair.1 { 2.0 } else { 1.0 };
-                tasks.push((left, right, factor));
-            }
-        }
-    }
-
-    // cost sort heavy first
-    tasks.sort_by_key(|&(l, r, _)| {
-        use std::cmp::Reverse;
-        let cost = (snap.buckets[l].n_rows() as u64)
-            * (snap.buckets[r].n_rows() as u64)
-            * (std::cmp::max(1, snap.buckets[l].key.len()) as u64);
-        Reverse(cost)
-    });
+    let tasks = build_pair_tasks(snap);
 
     // parallel run
     let results: Vec<PairResult> = tasks
         .par_iter()
-        .map(|&(left, right, factor)| {
+        .map(|task| {
+            let left = task.left;
+            let right = task.right;
+            let factor = task.factor;
             let key_left = snap.buckets[left].key.clone();
             let key_right = snap.buckets[right].key.clone();
 

@@ -2,6 +2,7 @@ use anyhow::{Context, Result};
 use ndarray::Array1;
 use ndarray_npy::{NpzReader, NpzWriter};
 use std::fs::File;
+use std::path::Path;
 
 use super::types::{Bucket, Snapshot};
 
@@ -75,6 +76,21 @@ pub fn load_snapshot(path: &str) -> Result<Snapshot> {
         jbt_ref_pop,
         n_total,
         compat,
+    })
+}
+
+pub fn read_bucket_from_npz(path: &Path) -> Result<Bucket> {
+    let f = File::open(path).with_context(|| format!("open {}", path.display()))?;
+    let mut npz = NpzReader::new(f).context("read bucket npz")?;
+    let rows_data = read_i32(&mut npz, "rows_data.npy")?.to_vec();
+    let indptr = read_i64(&mut npz, "rows_indptr.npy")?.to_vec();
+    let weights = read_f64(&mut npz, "weights.npy")?.to_vec();
+    let key = read_i32(&mut npz, "key.npy")?.to_vec();
+    Ok(Bucket {
+        rows_data,
+        indptr,
+        weights,
+        key,
     })
 }
 

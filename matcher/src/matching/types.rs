@@ -1,5 +1,7 @@
 use std::collections::HashMap;
 
+use serde::{Deserialize, Serialize};
+
 #[derive(Debug, Clone)]
 pub struct Bucket {
     pub rows_data: Vec<i32>,
@@ -26,6 +28,13 @@ pub struct Snapshot {
     pub jbt_ref_pop: Vec<i32>,
     pub n_total: i32,
     pub compat: HashMap<i32, (Vec<i32>, Vec<i32>)>, // pop -> (key1, key2)
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PairTask {
+    pub left: usize,
+    pub right: usize,
+    pub factor: f64,
 }
 
 #[inline]
