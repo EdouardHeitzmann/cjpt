@@ -10,7 +10,7 @@ To determine which polyomino classes are compatible with which, as well as which
 # Test run for n = 8:
 - Clone this repo onto a directory in the hpc.
 - Make sure you have a working cargo installation.
-- Without setting any environment variables, execute `cargo run --release -- ../data/pre_ref_compat_inputs8.npz`
+- Without setting any environment variables, execute `cargo run --release --bin matcher -- ../data/pre_ref_compat_inputs8.npz`
 - Within a minute the script should print out the correct number (187,497,290,034).
 
 # Running n = 10:
@@ -19,13 +19,13 @@ To determine which polyomino classes are compatible with which, as well as which
 export ENUM_MAX_RSS_GB=1028          # abort if RSS exceeds 1TB
 export ENUM_SNAPSHOT_PATH=../data/cjpt10_snapshot.npz
 
-cargo run --release -- ../data/pre_ref_compat_inputs10.npz
+cargo run --release --bin matcher -- ../data/pre_ref_compat_inputs10.npz
 ```
 - If step 1 runs but step 2 times out (this would already be a huge win), we can resume step 2 from the cached results as follows:
-`cargo run --release -- --resume ../data/cjpt10_snapshot.npz`
+`cargo run --release --bin matcher -- --resume ../data/cjpt10_snapshot.npz`
 
 # Splitting a completed snapshot into shards:
-Working in the root directory `matcher`, with a snapshot saved in `/data/pre_ref_compat_inputs10_snapshot.npz`:
+Working in the root directory `matcher`, with a snapshot saved in `/data/pre_ref_compat_inputs10_snapshot.npz` (make sure the name of the snapshot is actually correct):
 - Run `cargo run --release --bin snapshot_split -- ../data/pre_ref_compat_inputs10_snapshot.npz ../data/cjpt10_shards 10`; this will split the large saved file into many small buckets, and pre-compute a schedule of which buckets to match together.
 - With this done, do `cargo run --release --bin snapshot_pair_run -- ../data/cjpt10_shards/snapshot_schedule_n10.json ../data/cjpt10_shards`; this will assign individual parallelized workers to load a bucket pair into RAM according to the schedule, perform the matching logic, accumulate the subtotal into the global total, and print out some profiling info.
 
