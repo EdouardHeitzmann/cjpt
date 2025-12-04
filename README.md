@@ -28,4 +28,5 @@ cargo run --release -- ../data/pre_ref_compat_inputs10.npz
 Working in the root directory `matcher`, with a snapshot saved in `/data/pre_ref_compat_inputs10_snapshot.npz`:
 - Run `cargo run --release --bin snapshot_split -- ../data/pre_ref_compat_inputs10_snapshot.npz ../data/cjpt10_shards 10`; this will split the large saved file into many small buckets, and pre-compute a schedule of which buckets to match together.
 - With this done, do `cargo run --release --bin snapshot_pair_run -- ../data/cjpt10_shards/snapshot_schedule_n10.json ../data/cjpt10_shards`; this will assign individual parallelized workers to load a bucket pair into RAM according to the schedule, perform the matching logic, accumulate the subtotal into the global total, and print out some profiling info.
+
 I have no idea how many buckets there will be, or how large each will be! It's reasonable to expect that their footprint will be larger than the single-file 130GB snapshot, and that matching them will take longer than the original (>48h) matcher process (because each worker now has some loading/unloading to do).
