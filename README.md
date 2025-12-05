@@ -30,3 +30,21 @@ Working in the root directory `matcher`, with a snapshot saved in `/data/pre_ref
 - With this done, do `cargo run --release --bin snapshot_pair_run -- ../data/cjpt10_shards/snapshot_schedule_n10.json ../data/cjpt10_shards`; this will assign individual parallelized workers to load a bucket pair into RAM according to the schedule, perform the matching logic, accumulate the subtotal into the global total, and print out some profiling info.
 
 I have no idea how many buckets there will be, or how large each will be! It's reasonable to expect that their footprint will be larger than the single-file 130GB snapshot, and that matching them will take longer than the original (>48h) matcher process (because each worker now has some loading/unloading to do).
+
+# Running prebuilt executables (no Cargo)
+If you have the following compiled binaries (in `matcher/target/release/`):
+- `matcher` (enumerate + match, or resume from snapshot)
+- `snapshot_split` (split a snapshot into per-bucket shards and a pairing schedule)
+- `snapshot_pair_run` (match from shards using the saved schedule)
+
+Examples (adjust paths as needed):
+
+- Fresh run N=10: `./matcher ../data/pre_ref_compat_inputs10.npz`
+- Resume from full snapshot N=10: `./matcher -- --resume ../data/cjpt10_snapshot.npz`
+- Split snapshot into shards N=10: `./snapshot_split ../data/cjpt10_snapshot.npz ../data/cjpt10_shards 10`
+- Match from shards N=10: `./snapshot_pair_run ../data/cjpt10_shards/snapshot_schedule_n10.json ../data/cjpt10_shards`
+
+N=8 variants (same binaries):
+- Fresh run N=8: `./matcher ../data/pre_ref_compat_inputs8.npz`
+- Split an N=8 snapshot: `./snapshot_split ../data/cjpt8_snapshot.npz ../data/cjpt8_shards 8`
+- Match shards N=8: `./snapshot_pair_run ../data/cjpt8_shards/snapshot_schedule_n8.json ../data/cjpt8_shards`
