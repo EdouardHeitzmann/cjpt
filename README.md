@@ -37,14 +37,22 @@ If you have the following compiled binaries (in `matcher/target/release/`):
 - `snapshot_split` (split a snapshot into per-bucket shards and a pairing schedule)
 - `snapshot_pair_run` (match from shards using the saved schedule)
 
-Examples (adjust paths as needed):
+## To run N=10:
+(adjust paths as needed)
 
 - Fresh run N=10: `./matcher ../data/pre_ref_compat_inputs10.npz`
 - Resume from full snapshot N=10: `./matcher -- --resume ../data/cjpt10_snapshot.npz`
 - Split snapshot into shards N=10: `./snapshot_split ../data/cjpt10_snapshot.npz ../data/cjpt10_shards 10`
 - Match from shards N=10: `./snapshot_pair_run ../data/cjpt10_shards/snapshot_schedule_n10.json ../data/cjpt10_shards`
 
-N=8 variants (same binaries):
+## To test N=8:
 - Fresh run N=8: `./matcher ../data/pre_ref_compat_inputs8.npz`
 - Split an N=8 snapshot: `./snapshot_split ../data/cjpt8_snapshot.npz ../data/cjpt8_shards 8`
 - Match shards N=8: `./snapshot_pair_run ../data/cjpt8_shards/snapshot_schedule_n8.json ../data/cjpt8_shards`
+
+## Reordering a shard matching schedule
+To create a new shard matching schedule:
+- Build: `cargo build --release --bin schedule_reorder`
+- Run: `./target/release/schedule_reorder <input_schedule.json> <output_schedule.json>`
+
+The new schedule keeps the same buckets and metadata but sorts the tasks by descending pair cost = rows_left * rows_right.

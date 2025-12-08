@@ -38,8 +38,7 @@ pub fn build_pair_tasks(snap: &Snapshot) -> Vec<PairTask> {
     tasks.sort_by_key(|t| {
         use std::cmp::Reverse;
         let cost = (snap.buckets[t.left].n_rows() as u64)
-            * (snap.buckets[t.right].n_rows() as u64)
-            * (std::cmp::max(1, snap.buckets[t.left].key.len()) as u64);
+            * (snap.buckets[t.right].n_rows() as u64);
         Reverse(cost)
     });
 

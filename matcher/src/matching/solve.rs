@@ -2,6 +2,12 @@ use std::collections::{HashMap, HashSet};
 
 use super::types::Bucket;
 
+fn cache_clear_threshold() -> Option<usize> {
+    std::env::var("MATCHER_CACHE_MAX_KEYS")
+        .ok()
+        .and_then(|s| s.parse().ok())
+}
+
 // x -> sorted Vec<row_idx>
 pub fn build_rows_by_jbt(bucket: &Bucket) -> HashMap<i32, Vec<usize>> {
     let mut m: HashMap<i32, Vec<usize>> = HashMap::new();
@@ -84,6 +90,7 @@ pub fn subtotal_for_pair(
 
     let mut union_cache: HashMap<i32, Vec<bool>> = HashMap::new();
     let mut count_cache: HashMap<i32, Vec<i32>> = HashMap::new();
+    let clear_limit = cache_clear_threshold();
 
     'rowloop: for r1 in 0..bucket1.n_rows() {
         let row = bucket1.row_slice(r1);
@@ -296,6 +303,13 @@ pub fn subtotal_for_pair(
             rec(&rem, &mask, &eff, rows_by_jbt, cand_map, &mut used)
         };
         subtotal += w1 * add;
+
+        if let Some(limit) = clear_limit {
+            if union_cache.len() > limit || count_cache.len() > limit {
+                union_cache.clear();
+                count_cache.clear();
+            }
+        }
     }
 
     subtotal
