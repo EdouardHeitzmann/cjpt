@@ -91,6 +91,8 @@ fn main() -> Result<()> {
             let t_solve = t_solve0.elapsed().as_secs_f64();
 
             let t_total = t_pair0.elapsed().as_secs_f64();
+            let rows1 = bucket1.n_rows();
+            let rows2 = bucket2.n_rows();
 
             let meta_left = bucket_meta
                 .get(task.left)
@@ -103,13 +105,19 @@ fn main() -> Result<()> {
                 .map(|m| m.key.clone())
                 .unwrap_or_else(|| bucket2.key.clone());
 
+            drop(cand_map);
+            drop(rows_by_jbt);
+            drop(bucket1);
+            drop(bucket2);
+            runtime::maybe_trim_allocator();
+
             println!(
                 "[pair {:5} vs {:5}{}] rows1={:8}, rows2={:8} | load={:.3}s, index={:.3}s, cands={:.3}s, solve={:.3}s → total={:.3}s | subtotal={:.6} | key_left={:?} key_right={:?}",
                 task.left,
                 task.right,
                 if task.factor == 2.0 { " x2" } else { "" },
-                bucket1.n_rows(),
-                bucket2.n_rows(),
+                rows1,
+                rows2,
                 t_load,
                 t_index,
                 t_cands,

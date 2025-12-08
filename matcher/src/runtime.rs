@@ -1,5 +1,8 @@
 use rayon::ThreadPoolBuilder;
-use std::sync::Once;
+use std::sync::{Once, OnceLock};
+
+#[cfg(target_os = "linux")]
+use libc;
 
 struct ThreadConfig {
     count: usize,
@@ -64,4 +67,22 @@ pub fn configure_thread_pool() {
             }
         }
     });
+}
+
+/// Release freed pages back to the OS (helps long-running shard workers keep RSS flat).
+/// Opt-out with `MATCHER_TRIM_ALLOC=0`.
+pub fn maybe_trim_allocator() {
+    static ENABLED: OnceLock<bool> = OnceLock::new();
+    let enabled = *ENABLED.get_or_init(|| {
+        std::env::var("MATCHER_TRIM_ALLOC")
+            .map(|v| v != "0")
+            .unwrap_or(true)
+    });
+    if !enabled {
+        return;
+    }
+    #[cfg(target_os = "linux")]
+    unsafe {
+        libc::malloc_trim(0);
+    }
 }
